@@ -16,7 +16,8 @@ Done
 
 Open
 - `memory.md` is still the empty template. The owner has not sent the three `remember:` lines (step 11).
-- Test cases 2 and 3 need the owner's real situations. `/run-tests get-rewards` has never run, so there are no grades.
+- Test cases 2 and 3 need the owner's real situations.
+- Round 1 of `/run-tests get-rewards` ran and was graded blind: 1 of 3 cases pass (`drafts/tests/round-1/grades.md`). Case 5 (the trap) passed 3 of 3. Cases 1 and 4 fail on the same kind of line: the checklist says the run asks no question except "Send this? yes / no / change", but the job puts unanswerable questions under "Needs you" in the draft. Nobody has decided which side is right.
 - `results.csv` has only the hourly rate (60). Profit cannot be calculated. Minutes, token cost, signups and rewards are for the owner to give.
 - Sara Lindqvist asked for a price. data/ has none, so no reply was drafted.
 - Push to GitHub did not happen from this session. Commit `6c81843` is local only.
@@ -31,7 +32,7 @@ Open
 ## Next steps
 1. Push `main` to `origin` from a terminal where git has GitHub credentials.
 2. Send three `remember:` lines (for example a first name for signing, when messages are checked, one thing never to write).
-3. Run `/run-tests get-rewards`, read each failing line, and decide whether the memory or the checklist is right. Write cases 2 and 3 first.
+3. Decide the question line from round 1: change the job (no question in the draft) or change cases 1 and 4 (allow "Needs you"). Write cases 2 and 3, then run `/run-tests get-rewards` again as round 2 and compare the Before column.
 4. Swap in real contacts. Log each real send in `email-history.csv` so the 14-day rule works.
 5. Connect GitHub, then schedule a Monday run with no connectors and run-log-only output.
 

@@ -153,8 +153,8 @@ The starter agent's sample files (`past-posts.md`, `content-plan.md`, `campaign-
 ## Run it locally
 
 ```bash
-git clone https://github.com/kaiser-data/my-agent.git
-cd my-agent
+git clone https://github.com/kaiser-data/career-switcher-lead-agent.git
+cd career-switcher-lead-agent
 claude                          # needs Claude Code, signed in
 # then, inside Claude Code:
 #   /get-rewards                draft up to 5 texts for approval

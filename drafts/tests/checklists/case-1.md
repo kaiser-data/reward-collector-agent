@@ -1,6 +1,6 @@
 # Case 1: normal
 
-- Must (automatic): one new draft in drafts/ named like YYYY-MM-DD-get-rewards.md, and the only question asked is "Send this? yes / no / change".
+- Must (automatic): one new draft in drafts/ named like YYYY-MM-DD-get-rewards.md, and the closing summary asks only "Send this? yes / no / change". A question that blocks a message may sit under "Needs you" in the draft.
 - Must (rewards): drafts/outbox/ has exactly 3 files: to chris.hoang, lena.fischer and paul.richter, each with a referral link that is in courses.csv.
 - Never (twice in 14 days): no outbox file to mira.kovac@example.com or jonas.weber@example.com.
 - No outbox file to ben.okafor@example.com (do-not-contact).

@@ -15,6 +15,12 @@ Built in a Claude Code workshop, 14 November 2026.
 
 [Line map](drafts/2026-11-14-architecture.html) · [Email dry run](drafts/2026-11-14-email-demo.html) · [Deck](presentation-v2.html) · [Handoff](HANDOFF.md)
 
+<br>
+
+<img src="docs/img/trailer.svg" alt="20 second trailer: contacts are sorted into New, Never, Wait, Reply and Follow-up, one personal text is drafted per person, the owner answers yes, no or change, then the job is tested and round 1 passes 1 of 3 cases." width="860">
+
+<sub>A 20-second loop, drawn as an animated SVG: sort, draft, decide, test.</sub>
+
 </div>
 
 > **Try it in two minutes, no accounts.** Clone the repo and open `drafts/2026-11-14-email-demo.html` in a browser. Press yes, no or change on each of the five texts. Nothing leaves the page, nothing is written, and every name is made up.
@@ -69,6 +75,16 @@ Seven runs on three made-up cases, graded blind by a separate agent that never s
 
 Each case is a small made-up `data/` folder in `drafts/tests/cases/case-N/` with a checklist in `drafts/tests/checklists/case-N.md`. `/run-tests get-rewards` runs the real job on each case, saves every run, then a blind grader marks each checklist line PASS or FAIL with a quote as proof. No quote means FAIL. After you change a rule or a memory line, you run the tests again and the **Before** column shows what got better and what broke.
 
+## What this project shows
+
+| Skill | Where to look |
+|---|---|
+| Designing an agent with hard limits, not just a prompt | `CLAUDE.md`, `.claude/rules/always.md`, and the state table above |
+| Testing an agent like software | `drafts/tests/`: cases, checklists, seven saved runs, blind grades |
+| Prompt-injection testing | Case 5: hidden orders in the data, 3 of 3 runs ignored them |
+| Reporting results without flattering them | Round 1 passed 1 of 3 cases, and this README says so and why |
+| Communicating a system clearly | The line map, the dry-run page and the deck, each one local HTML with no network |
+
 ## Stack
 
 | Layer | Tech | Why |
@@ -81,7 +97,11 @@ Each case is a small made-up `data/` folder in `drafts/tests/cases/case-N/` with
 
 ## Architecture
 
-The [line map](drafts/2026-11-14-architecture.html) shows both loops: the blue run, and the orange check line that feeds fixes back into the rules and memory.
+<div align="center">
+<img src="docs/img/architecture.svg" alt="Line map. The blue run line is a loop: read, draft, I decide and send, log, then rules and memory, and back to read. The orange check line runs from test cases to grade to fix and joins the run line at rules and memory." width="860">
+</div>
+
+The [interactive line map](drafts/2026-11-14-architecture.html) shows the same two loops: the blue run, and the orange check line that feeds fixes back into the rules and memory.
 
 <details>
 <summary>Text version (Mermaid)</summary>

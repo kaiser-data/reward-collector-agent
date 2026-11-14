@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="480" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" viewBox="0 0 1000 480" role="img" aria-labelledby="dt dd"><style>
+text{fill:#14161a}
+.name{font-size:19px;font-weight:800}
+.det,.cap{font-size:14px;fill:#5c6370}
+.st{font-size:14px;font-weight:700}
+.run{stroke:#1e5bd8} .chk{stroke:#e8730c}
+.track{fill:none;stroke-width:14;stroke-linecap:round;stroke-linejoin:round}
+.stn{fill:#fff;stroke-width:5}
+.ix{fill:#fff;stroke:#14161a;stroke-width:5}
+.train{fill:#fff;stroke-width:3}
+</style><rect width="1000" height="480" fill="#ffffff"/>
+  <title id="dt">Lead agent line map</title>
+  <desc id="dd">The run line is a loop: read, draft, I decide and send, log, then rules and memory, and back to read. The check line runs from test cases to grade to fix, and joins the run line at rules and memory.</desc>
+  <defs>
+    <path id="pRing" d="M120 130H760A50 50 0 0 1 760 230H120A50 50 0 0 1 120 130Z"/>
+    <path id="pChk" d="M120 390H510Q560 390 560 340V230"/>
+  </defs>
+
+  <!-- tracks -->
+  <use href="#pRing" class="track run"/>
+  <use href="#pChk" class="track chk"/>
+
+  <!-- trains -->
+  <g aria-hidden="true" id="trains">
+    <rect class="train run" x="-14" y="-7" width="28" height="14" rx="7"><animateMotion dur="16s" repeatCount="indefinite" rotate="auto" begin="0s"><mpath href="#pRing"/></animateMotion></rect>
+    <rect class="train run" x="-14" y="-7" width="28" height="14" rx="7"><animateMotion dur="16s" repeatCount="indefinite" rotate="auto" begin="-8s"><mpath href="#pRing"/></animateMotion></rect>
+    <rect class="train chk" x="-14" y="-7" width="28" height="14" rx="7"><animateMotion dur="8s" repeatCount="indefinite" rotate="auto" begin="0s"><mpath href="#pChk"/></animateMotion></rect>
+    <rect class="train chk" x="-14" y="-7" width="28" height="14" rx="7"><animateMotion dur="8s" repeatCount="indefinite" rotate="auto" begin="-4s"><mpath href="#pChk"/></animateMotion></rect>
+  </g>
+
+  <!-- run line stations (top, left to right) -->
+  <circle class="stn run" cx="220" cy="130" r="13"/>
+  <text class="name" x="220" y="98" text-anchor="middle">Read</text>
+  <text class="det" x="220" y="160" text-anchor="middle">contacts and courses</text>
+  <text class="st" x="220" y="180" text-anchor="middle">◐ mock data</text>
+
+  <circle class="stn run" cx="390" cy="130" r="13"/>
+  <text class="name" x="390" y="98" text-anchor="middle">Draft</text>
+  <text class="det" x="390" y="160" text-anchor="middle">up to 5 texts</text>
+  <text class="st" x="390" y="180" text-anchor="middle">✓ never sends</text>
+
+  <rect class="stn run" x="544" y="114" width="32" height="32" rx="6" style="stroke-width:6"/>
+  <text class="name" x="560" y="98" text-anchor="middle">I decide and send</text>
+  <text class="det" x="560" y="170" text-anchor="middle">yes, no or change</text>
+  <text class="st" x="560" y="190" text-anchor="middle">✓ the only gate</text>
+
+  <circle class="stn run" cx="730" cy="130" r="13"/>
+  <text class="name" x="730" y="98" text-anchor="middle">Log</text>
+  <text class="det" x="730" y="160" text-anchor="middle">feeds the 14-day rule</text>
+  <text class="st" x="730" y="180" text-anchor="middle">◐ added after my yes</text>
+
+  <text class="cap" x="610" y="258">the log feeds the next run</text>
+
+  <!-- interchange: rules and memory -->
+  <circle class="ix" cx="560" cy="230" r="17"/>
+  <circle cx="560" cy="230" r="6" style="fill:#14161a"/>
+  <text class="name" x="536" y="262" text-anchor="end">Rules and memory</text>
+  <text class="det" x="536" y="282" text-anchor="end">CLAUDE.md and memory.md, read first</text>
+  <text class="st" x="536" y="302" text-anchor="end">○ memory is empty</text>
+
+  <!-- check line stations -->
+  <circle class="stn chk" cx="120" cy="390" r="13"/>
+  <text class="name" x="120" y="426" text-anchor="middle">Test cases</text>
+  <text class="det" x="120" y="446" text-anchor="middle">5 inputs, one a trap</text>
+  <text class="st" x="120" y="466" text-anchor="middle">◐ 3 of 5 written</text>
+
+  <circle class="stn chk" cx="320" cy="390" r="13"/>
+  <text class="name" x="320" y="426" text-anchor="middle">Grade</text>
+  <text class="det" x="320" y="446" text-anchor="middle">round 1, graded blind</text>
+  <text class="st" x="320" y="466" text-anchor="middle">◐ 1 of 3 cases pass</text>
+
+  <circle class="stn chk" cx="500" cy="390" r="13"/>
+  <text class="name" x="500" y="426" text-anchor="middle">Fix</text>
+  <text class="det" x="500" y="446" text-anchor="middle">a rule or memory line</text>
+  <text class="st" x="500" y="466" text-anchor="middle">○ 1 rule to decide</text>
+</svg>

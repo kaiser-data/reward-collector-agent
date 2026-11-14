@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🎯 Lead rewards agent
+# ✉️ Yes First
 
-### Five personal course recommendations per run. Written for you, sent only after your yes.
+### The outreach agent that writes five personal messages and cannot hit send.
 
 **An agent that finds career switchers in your contacts, picks one fitting course for each, and drafts the message.**
 **You read, approve and send from your own mailbox. The agent never sends.**

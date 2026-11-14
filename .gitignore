@@ -13,6 +13,12 @@
 .DS_Store
 Thumbs.db
 
+# Starter-agent sample files: not used by the lead job, kept on disk only.
+data/past-posts.md
+data/content-plan.md
+data/campaign-numbers.csv
+data/voice-notes/
+
 # Files you wouldn't hand to a stranger: remove the # in front of a line to keep that folder off GitHub too.
 # data/
 # drafts/

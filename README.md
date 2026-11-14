@@ -148,7 +148,7 @@ drafts/
 presentation-v2.html  the deck
 ```
 
-`data/` also holds `past-posts.md`, `content-plan.md`, `campaign-numbers.csv` and `voice-notes/` from the starter agent. The lead job does not use them.
+The starter agent's sample files (`past-posts.md`, `content-plan.md`, `campaign-numbers.csv`, `voice-notes/`) are not part of this repo. They stay on the author's disk and are listed in `.gitignore`.
 
 ## Run it locally
 

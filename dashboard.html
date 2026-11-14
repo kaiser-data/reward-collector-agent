@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your agent on one page</title>
+<style>
+  /* The workshop page's look: cream, sand, terracotta (clay), ink. No web fonts (the page has no network access):
+     Lora and Poppins when the laptop has them, else the same fallbacks the workshop page uses. */
+  :root {
+    --ink: #141413; --cream: #faf9f5; --sand: #e8e6dc; --stone: #b0aea5; --clay: #d97757; --muted: #5e5d59;
+    --label: Poppins, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--sand); color: var(--ink); font: 17px/1.55 Lora, Georgia, "Times New Roman", serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-weight: 500; font-size: 1.9rem; line-height: 1.2; margin: 0 0 .3em; }
+  h2 { font-weight: 500; font-size: 1.15rem; margin: 0 0 .6em; }
+  code { font: .86em var(--mono); background: var(--sand); padding: .1em .35em; border-radius: 4px; }
+  .lead { margin: 0; }
+  .private { margin: .2em 0 0; color: var(--muted); font-size: .92rem; }
+  .private::before { content: "●"; color: var(--clay); margin-right: .45em; font-size: .7em; vertical-align: .15em; }
+  .card { background: var(--cream); border: 1px solid var(--stone); border-radius: 14px; padding: 18px; margin: 14px 0; }
+  .label, .badge, summary { font-family: var(--label); font-weight: 600; }
+  .label { text-transform: uppercase; letter-spacing: .1em; font-size: .72rem; margin: 0 0 6px; color: var(--muted); }
+  .badge { display: inline-block; font-size: .72rem; border: 1px solid var(--stone); border-radius: 999px; padding: 2px 9px; color: var(--muted); white-space: nowrap; vertical-align: middle; }
+  .hint { color: var(--muted); font-size: .88rem; }
+
+  /* Empty state: one instruction and the drawing. */
+  .cmd { display: block; font: .95rem var(--mono); background: #1f1e1c; color: #ebe9e1; border-radius: 10px; padding: 12px 14px; margin: 10px 0 6px; word-break: break-all; }
+  .da { display: block; width: 100%; max-width: 520px; height: auto; margin: 12px 0 4px; font-family: var(--mono); }
+  .da-term { fill: #1f1e1c; } .da-tbar { fill: #33312e; } .da-txt { font-size: 10px; fill: #ebe9e1; }
+  .da-cover { fill: #1f1e1c; transform-box: fill-box; transform-origin: right center; transform: scaleX(0); }
+  .da-enter rect { fill: var(--clay); } .da-enter text { font: 600 8px var(--label); fill: var(--ink); text-anchor: middle; }
+  .da-win { fill: var(--cream); stroke: var(--stone); } .da-bar { fill: var(--sand); }
+  .da-big { fill: var(--ink); } .da-ok { fill: var(--ink); } .da-bad { fill: none; stroke: var(--clay); stroke-width: 1.6; }
+  .da-arrow { fill: none; stroke: var(--stone); stroke-width: 1.5; }
+
+  /* Result: the headline, one row per round (newest on top), the next step, then the runs. */
+  .headline { font-family: var(--label); font-weight: 600; font-size: 2.3rem; line-height: 1.1; margin: 0; }
+  .since { margin: 6px 0 2px; }
+  .legend { margin: 0 0 4px; }
+  #tags { margin-bottom: 14px; line-height: 1.9; }
+  .legend .dot { display: inline-block; vertical-align: -1px; margin: 0 .3em 0 .2em; }
+  .dots { display: flex; flex-wrap: wrap; gap: 4px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; flex: none; }
+  .dot.ok { background: var(--ink); }
+  .dot.bad { border: 2px solid var(--clay); }
+  .change { display: inline-block; font: 600 .68rem var(--label); border-radius: 999px; padding: 1px 8px; white-space: nowrap; border: 1px solid transparent; }
+  .change-fixed, .change-better, .change-passes { background: var(--ink); color: var(--cream); }
+  .change-broke, .change-worse { background: var(--clay); color: var(--ink); }
+  .change-failing, .change-fails, .change-new { border-color: var(--clay); color: var(--ink); }
+
+  .rgrid { display: grid; grid-template-columns: 10.5rem repeat(var(--cols), minmax(0, 1fr)); column-gap: 8px; align-items: start; }
+  .rhead { padding: 0 12px 6px; border-bottom: 1.5px solid var(--ink); }
+  .rhead b { display: block; font: 600 .8rem var(--label); }
+  .rhead span { display: block; color: var(--muted); font-size: .76rem; line-height: 1.25; }
+  .round { margin: 0; border-bottom: 1px solid var(--sand); }
+  .round > summary { list-style: none; padding: 11px 12px; font-family: inherit; font-weight: 400; }
+  .round > summary::-webkit-details-marker { display: none; }
+  .round[open] > summary { background: #fff; border-radius: 10px 10px 0 0; }
+  .rname { font: 600 1rem var(--label); display: block; }
+  .rname::before { content: "▸"; display: inline-block; width: 1.1em; color: var(--clay); }
+  .round[open] .rname::before { content: "▾"; }
+  .rcount, .rdelta { display: block; font-size: .82rem; color: var(--muted); padding-left: 1.2rem; line-height: 1.35; }
+  .rdelta { color: var(--ink); }
+  .ccell .tries { display: block; font-size: .76rem; color: var(--muted); margin: 2px 0; }
+  .ccell .none { color: var(--stone); }
+  .rbody { background: #fff; border-radius: 0 0 10px 10px; padding: 4px 14px 14px; }
+  .rbody h3 { font: 600 .74rem var(--label); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; padding-top: 10px; border-top: 1px solid var(--sand); }
+  .chg { list-style: none; margin: 0; padding: 0; }
+  .chg > li { padding: 7px 0; border-bottom: 1px dashed var(--sand); font-size: .92rem; }
+  .chg > li:last-child { border-bottom: 0; }
+  .chg b { font: 600 .9rem var(--label); margin: 0 .35em 0 .5em; }
+  .chg .kind { color: var(--muted); }
+  .lines { margin: 4px 0 0 1.2rem; padding: 0; list-style: none; font-size: .88rem; }
+  .lines li::before { content: "○"; color: var(--clay); margin-right: .5em; font-size: .8em; }
+  .lines li.line-ok::before { content: "●"; color: var(--ink); }
+  .lines i { font-style: normal; font-family: var(--label); font-weight: 600; font-size: .78rem; margin-right: .3em; }
+  .lines small { color: var(--muted); font-size: .76rem; white-space: nowrap; }
+  .note { margin: 4px 0 0 1.2rem; font-size: .9rem; }
+  .why { margin: 4px 0 0 1.2rem; font-size: .84rem; color: var(--muted); }
+  .more { margin: 8px 0 0; }
+  .more > summary { padding: 8px 12px; }
+
+  .cmd + .hint { margin-top: 0; }
+  .step { margin: 14px 0 0; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 12px 0; }
+  .tile { background: #fff; border: 1px solid var(--sand); border-radius: 10px; padding: 10px 12px; }
+  .tile > span { display: block; font: 600 .75rem var(--label); color: var(--muted); }
+  .tile strong { font-weight: 500; font-size: 1.25rem; }
+  .tile small { display: block; color: var(--muted); font-size: .8rem; }
+  .tile .pays { margin: 8px 0 0; font-size: .8rem; line-height: 1.4; }
+  .tile .pays b { font-family: var(--label); font-weight: 600; }
+  .info { font: 600 .7rem var(--label); width: 1.5em; height: 1.5em; border-radius: 50%; border: 1.5px solid var(--clay); background: #fff; color: var(--ink); padding: 0; margin-left: .35em; cursor: pointer; vertical-align: 1px; line-height: 1; }
+  .info[aria-expanded="true"] { background: var(--clay); }
+  .infotext { margin: 6px 0 0; font-size: .86rem; background: var(--sand); border-radius: 8px; padding: 8px 10px; }
+
+  .run { background: #fff; border: 1px solid var(--sand); border-radius: 12px; padding: 14px; margin: 10px 0; }
+  .run h3 { font: 600 1.05rem var(--label); margin: 0; }
+  .run .what { margin: 2px 0 10px; color: var(--muted); font-size: .9rem; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .stat { border-top: 4px solid var(--sand); padding-top: 6px; }
+  .stat-fresh { border-color: var(--clay); } .stat-write { border-color: var(--stone); } .stat-read { border-color: var(--ink); }
+  .stat span { display: block; font: 600 .74rem var(--label); color: var(--muted); }
+  .stat strong { display: block; font-weight: 500; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+  .stat small { display: block; color: var(--muted); font-size: .76rem; line-height: 1.3; }
+  .barlabel { margin: 12px 0 4px; font-size: .9rem; }
+  .bar { display: flex; height: 30px; border-radius: 8px; overflow: hidden; background: var(--sand); }
+  .bar i { font: 600 .78rem/30px var(--label); font-style: normal; text-align: center; white-space: nowrap; overflow: hidden; min-width: 2px; }
+  .bar .b-read { background: var(--ink); color: var(--cream); }
+  .bar .b-write { background: var(--stone); color: var(--ink); }
+  .bar .b-fresh { background: var(--clay); color: var(--ink); }
+  .price { margin: 10px 0 0; font-size: .95rem; }
+  .price b { font-family: var(--label); font-weight: 600; }
+
+  details { margin: 10px 0; }
+  summary { cursor: pointer; font-size: .92rem; }
+  details > .card { margin-top: 8px; font-size: .92rem; }
+  .pick { display: block; border: 1.5px dashed var(--clay); border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: #fff; }
+  .pick input { display: block; margin-top: 8px; }
+  #message:empty { display: none; }
+
+  @media (max-width: 620px) {
+    .card { padding: 14px 12px; }
+    .rgrid { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); column-gap: 4px; }
+    .rgrid > .rlabel { grid-column: 1 / -1; margin-bottom: 6px; }
+    .rhead { padding: 0 6px 6px; }
+    .rhead .rlabel, .rhead span { display: none; }
+    .round > summary { padding: 10px 6px; }
+    .rcount, .rdelta { display: inline; padding-left: 0; margin-left: .6em; }
+    .rbody { padding: 4px 10px 12px; }
+    .dot { width: 11px; height: 11px; }
+    .dots { gap: 3px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 12px; }
+    .headline { font-size: 1.9rem; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .da-cover-cmd { animation: da-type 7s steps(26, end) infinite; }
+    .da-enter { animation: da-enter 7s linear infinite; }
+    .da-fill { animation: da-fill 7s ease-out infinite; }
+    .da-arrow { animation: da-arrow 7s linear infinite; }
+    .grow { animation: grow .5s ease-out both; }
+    .bar i { animation: widen .6s ease-out both; }
+  }
+  @keyframes da-type { 0%, 6% { transform: scaleX(1); } 40%, 99% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+  @keyframes da-enter { 0%, 42% { opacity: 0; } 45%, 52% { opacity: 1; } 55%, 100% { opacity: 0; } }
+  @keyframes da-arrow { 0%, 52% { opacity: 0; } 56%, 96% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes da-fill { 0%, 56% { opacity: 0; transform: translateY(4px); } 64%, 96% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+  @keyframes grow { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes widen { from { max-width: 0; } to { max-width: 100%; } }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="label">Dashboard</p>
+  <h1>Your agent on one page</h1>
+  <p class="lead">What changed in your tests from round to round, and what each run used.</p>
+  <p class="private">Read from your laptop. Nothing leaves it.</p>
+</header>
+
+<section id="empty" class="card">
+  <h2>Fill this page from your agent</h2>
+  <p>In Claude Code, in your agent's folder, type this and press Enter:</p>
+  <code class="cmd">! bash .claude/dashboard.sh</code>
+  <p class="hint">Windows: <code>! powershell -ExecutionPolicy Bypass -File .claude/dashboard.ps1</code></p>
+  <svg class="da" viewBox="0 0 360 120" aria-hidden="true" focusable="false">
+    <rect class="da-term" x="6" y="6" width="200" height="108" rx="8"/>
+    <path class="da-tbar" d="M6 22v-8a8 8 0 0 1 8-8h184a8 8 0 0 1 8 8v8z"/>
+    <text class="da-txt" x="14" y="44">! bash .claude/dashboard.sh</text>
+    <rect class="da-cover da-cover-cmd" x="12" y="34" width="166" height="14"/>
+    <g class="da-enter"><rect x="148" y="90" width="50" height="17" rx="4"/><text x="173" y="102">Enter ⏎</text></g>
+    <path class="da-arrow" d="M212 60h14m-5 -5l5 5l-5 5"/>
+    <rect class="da-win" x="232" y="6" width="122" height="108" rx="8"/>
+    <path class="da-bar" d="M232 22v-8a8 8 0 0 1 8-8h106a8 8 0 0 1 8 8v8z"/>
+    <g class="da-fill">
+      <rect class="da-big" x="242" y="32" width="58" height="12" rx="2"/>
+      <circle class="da-ok" cx="248" cy="62" r="4"/><circle class="da-ok" cx="260" cy="62" r="4"/><circle class="da-ok" cx="272" cy="62" r="4"/>
+      <circle class="da-ok" cx="248" cy="76" r="4"/><circle class="da-bad" cx="260" cy="76" r="3.2"/><circle class="da-ok" cx="272" cy="76" r="4"/>
+      <circle class="da-bad" cx="248" cy="90" r="3.2"/><circle class="da-ok" cx="260" cy="90" r="4"/><circle class="da-ok" cx="272" cy="90" r="4"/>
+      <rect class="da-bar" x="292" y="58" width="52" height="7" rx="3"/><rect class="da-bar" x="292" y="72" width="40" height="7" rx="3"/><rect class="da-bar" x="292" y="86" width="46" height="7" rx="3"/>
+    </g>
+  </svg>
+  <p class="hint">It finds your agent's run logs and test grades and opens this page filled in.</p>
+</section>
+
+<section id="result" hidden>
+  <div class="card grow">
+    <p class="label">Your tests</p>
+    <p class="headline" id="headline">No tests yet</p>
+    <p class="since" id="since">Run your tests once and the rounds show here.</p>
+    <p class="hint legend" id="legend" hidden>One row per round, newest on top. <i class="dot ok"></i>a try that passed <i class="dot bad"></i>a try that failed. A case passes when every try passes. Click a round to see what changed.</p>
+    <p class="hint legend" id="tags" hidden><span class="change change-fixed">fixed</span> failed before, passes now. <span class="change change-broke">broke</span> passed before, fails now. <span class="change change-better">better</span> <span class="change change-worse">worse</span> more or fewer tries pass than before.</p>
+    <div id="rounds"></div>
+  </div>
+
+  <div class="card grow">
+    <p class="label">Run the next round</p>
+    <p>Change one rule. Then type this in Claude Code to run your tests again:</p>
+    <code class="cmd" id="nextLine">/run-tests</code>
+    <p class="hint" id="nextHint">It asks which job to test.</p>
+    <p class="step">Then type this again to see the new round here:</p>
+    <code class="cmd">! bash .claude/dashboard.sh</code>
+    <p class="hint">Windows: <code>! powershell -ExecutionPolicy Bypass -File .claude/dashboard.ps1</code></p>
+  </div>
+
+  <div class="card grow">
+    <p class="label">Your runs</p>
+    <p class="lead">A run is one session in Claude Code. A job is a command your agent runs<span id="jobExample"></span>. A run where you typed no command shows as “Chat (no job)”.</p>
+    <div class="tiles">
+      <div class="tile"><span>Last run</span><strong id="lastRun">–</strong><small id="lastJob"></small></div>
+      <div class="tile"><span>Runs in the last 7 days</span><strong id="runsWeek">–</strong><small id="runsAll"></small></div>
+      <div class="tile"><span>Price of all runs<button type="button" class="info" aria-expanded="false" aria-controls="infoPrice" aria-label="About the price">i</button></span><strong id="costAll">–</strong><small id="costWithoutAll"></small>
+        <p class="pays"><b>On API credits (Console login):</b> this is what it cost.<br><b>On a Claude Pro or Max plan:</b> your plan covers it; this is what it would have cost.</p>
+        <p class="infotext" id="infoPrice" hidden>What these tokens cost at API list prices. On API credits (Console login), that is what you paid. On a Claude Pro or Max plan, your plan covers it; this is what it would have cost.</p></div>
+      <div class="tile"><span>Read from the cache<button type="button" class="info" aria-expanded="false" aria-controls="infoCache" aria-label="About the cache">i</button></span><strong id="cachedAll">–</strong><small>of everything your agent read</small>
+        <p class="infotext" id="infoCache" hidden>Claude Code re-reads what it already sent earlier at a much lower price. That is reading from the cache, and it is why repeat runs are cheaper.</p></div>
+    </div>
+    <p class="hint">Each run below is counted in tokens<button type="button" class="info" aria-expanded="false" aria-controls="infoTokens" aria-label="About tokens">i</button></p>
+    <p class="infotext" id="infoTokens" hidden>A token is a piece of a word. What your agent reads (input) and what it writes (output) are both counted in tokens.</p>
+    <div id="runs"><p class="hint">No runs yet.</p></div>
+  </div>
+</section>
+
+<p id="message" class="hint" role="status"></p>
+
+<details>
+  <summary>Pick the files by hand</summary>
+  <div class="card">
+    <label class="pick"><b>1. Its run logs.</b> Choose the folder in <code>~/.claude/projects</code> whose name <i>ends</i> in your agent's folder name, like <code>-Downloads-my-agent</code> (not <code>-my-agent-old-…</code>).<br>
+      Mac: the folder is hidden, so in the picker press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>, paste <code>~/.claude/projects</code> and press Enter.<br>
+      Windows: paste <code>%USERPROFILE%\.claude\projects</code> into the picker's address bar.
+      <input id="logs" type="file" webkitdirectory multiple>
+    </label>
+    <label class="pick"><b>2. Its tests (optional).</b> Choose your agent's <code>drafts/tests</code> folder from step C4.
+      <input id="grades" type="file" webkitdirectory multiple>
+    </label>
+    <p class="hint">The browser may say “Upload”. Nothing is sent anywhere: this page can't reach the network. It shows numbers, model names and job names, never the text of a run.</p>
+  </div>
+</details>
+<details>
+  <summary>About the prices</summary>
+  <div class="card">
+    <p>The price is what these tokens cost at API list prices. On API credits (Console login): this is what it cost. On a Claude Pro or Max plan: your plan covers it; this is what it would have cost.</p>
+    <p>Claude Code re-reads what it sent before from its cache, which is much cheaper. “Without the cache” shows what the same run would cost if it read everything at the full price.</p>
+    <p id="pricesNote" class="hint"></p>
+  </div>
+</details>
+</main>
+
+<script id="calc">
+// ===== PRICES =====================================================================
+// API list prices in USD per million tokens, read on 13 Nov 2026 from
+// https://platform.claude.com/docs/en/about-claude/pricing. Yours may differ: edit here.
+// write5m / write1h: writing to the cache (kept 5 minutes or 1 hour). read: reading from it.
+const PRICES_READ_ON = "13 Nov 2026";
+const PRICES = {
+  "claude-fable-5-2": { input: 8, write5m: 10, write1h: 16, read: 0.2, output: 40 },
+  "claude-opus-5-5": { input: 4, write5m: 5, write1h: 8, read: 0.2, output: 20 },
+  "claude-sonnet-5-5": { input: 2, write5m: 2.5, write1h: 4, read: 0.1, output: 10 },
+  "claude-haiku-5-5": {
+    input: 0.1, write5m: 0.125, write1h: 0.2, read: 0.01, output: 0.5,
+    over100k: { input: 0.5, write5m: 0.625, write1h: 1, read: 0.05, output: 2.5 },
+  },
+};
+// ==================================================================================
+
+/** Token counts of one model reply, split the way the cache bills them. */
+function tokensOf(usage) {
+  const split = usage.cache_creation;
+  const write = usage.cache_creation_input_tokens ?? 0;
+  return {
+    fresh: usage.input_tokens ?? 0,
+    write5m: split ? split.ephemeral_5m_input_tokens ?? 0 : write,
+    write1h: split ? split.ephemeral_1h_input_tokens ?? 0 : 0,
+    read: usage.cache_read_input_tokens ?? 0,
+    output: usage.output_tokens ?? 0,
+  };
+}
+
+/** Price row for a model id as Claude Code logs it ("claude-sonnet-5-5", maybe with a "[1m]" tag), or null. */
+function priceFor(model, promptTokens) {
+  const row = PRICES[model.replace(/\[.*\]$/, "")];
+  if (!row) return null;
+  return row.over100k && promptTokens > 100_000 ? row.over100k : row;
+}
+
+/** "claude-sonnet-5-5" as "Sonnet 5.5"; an id in another shape stays as it is. */
+function modelName(model) {
+  const m = model.match(/^claude-([a-z]+)-(\d+)-(\d+)/);
+  return m ? `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}.${m[3]}` : model;
+}
+
+/** Tokens sent as the prompt, however the cache handled them. */
+const promptOf = (t) => t.fresh + t.write5m + t.write1h + t.read;
+
+/** Cost of one reply with the cache, and what the same prompt would cost at the plain input price. */
+function costOf(t, price) {
+  const out = t.output * price.output;
+  return {
+    withCache: (t.fresh * price.input + t.write5m * price.write5m + t.write1h * price.write1h + t.read * price.read + out) / 1e6,
+    withoutCache: (promptOf(t) * price.input + out) / 1e6,
+  };
+}
+
+/** Token counts per model from Claude Code's own running total for a session (its "cost-state" line). */
+function tokensFromTotals(u) {
+  return {
+    fresh: u.inputTokens ?? 0,
+    write5m: u.cacheCreationEphemeral5mInputTokens ?? 0,
+    write1h: u.cacheCreationEphemeral1hInputTokens ?? 0,
+    read: u.cacheReadInputTokens ?? 0,
+    output: u.outputTokens ?? 0,
+  };
+}
+
+/**
+ * The model calls of one session log, each with its tokens and prompt size. Claude Code's running total
+ * wins when the log has one: it also counts calls that aren't logged as replies. Haiku's long-prompt rate
+ * then goes by the longest logged prompt for that model. Otherwise every reply counts once (a reply with
+ * several parts is logged once per part, with the same usage).
+ */
+function callsOf(lines) {
+  const replies = new Map();
+  let totals = null;
+  for (const line of lines) {
+    if (line.type === "cost-state" && line.modelUsage) totals = line.modelUsage;
+    const message = line.type === "assistant" ? line.message : null;
+    if (message?.usage && message.model !== "<synthetic>") replies.set(message.id, { model: message.model, tokens: tokensOf(message.usage) });
+  }
+  const calls = [...replies.values()].map((r) => ({ ...r, prompt: promptOf(r.tokens) }));
+  if (!totals) return calls;
+  const longest = (model) => Math.max(0, ...calls.filter((c) => c.model === model).map((c) => c.prompt));
+  return Object.entries(totals).map(([model, u]) => ({ model, tokens: tokensFromTotals(u), prompt: longest(model) }));
+}
+
+/** Claude Code's own commands: a session that starts with one of these is named after the job typed next. */
+const BUILT_IN = /^\/(clear|exit|compact|model|help|config|status|cost|context|resume|rewind|memory|permissions|add-dir|init|login|logout|doctor|tasks|agents|mcp|hooks|plugin|ide|theme|usage|export|fast)$/;
+
+/** The first job typed in a session, like "/fin-owed", skipping Claude Code's own commands; "chat" when there is none. */
+function jobOf(lines) {
+  for (const line of lines) {
+    const command = line.type === "user" && typeof line.message?.content === "string" && line.message.content.match(/<command-name>(\/[\w-]+)<\/command-name>/);
+    if (command && !BUILT_IN.test(command[1])) return command[1];
+  }
+  return "chat";
+}
+
+/** One run from the lines of one session log: first and last timestamp, which job, which models, tokens and cost. */
+function summarizeRun(lines) {
+  const stamps = lines.map((line) => line.timestamp).filter(Boolean).sort();
+  const run = { started: stamps[0] ?? null, ended: stamps.at(-1) ?? null, job: jobOf(lines), models: new Set(), fresh: 0, write5m: 0, write1h: 0, read: 0, output: 0, cost: 0, costWithout: 0, unpriced: new Set() };
+  for (const { model, tokens, prompt } of callsOf(lines)) {
+    for (const key of ["fresh", "write5m", "write1h", "read", "output"]) run[key] += tokens[key];
+    run.models.add(model);
+    const price = priceFor(model, prompt);
+    if (!price) { run.unpriced.add(model); continue; }
+    const cost = costOf(tokens, price);
+    run.cost += cost.withCache;
+    run.costWithout += cost.withoutCache;
+  }
+  return run;
+}
+
+/** Session id a log file belongs to: "<id>.jsonl" at the top, or "<id>/subagents/....jsonl" below it. */
+function sessionOf(relativePath) {
+  const parts = relativePath.split("/").slice(1);
+  if (parts.length === 1 && parts[0].endsWith(".jsonl")) return parts[0].slice(0, -".jsonl".length);
+  if (parts.length === 3 && parts[1] === "subagents" && parts[2].endsWith(".jsonl")) return parts[0];
+  return null;
+}
+
+/** Lines of a JSONL file; a line that isn't JSON (a half-written last line) is skipped. */
+function parseJsonl(text) {
+  return text.split("\n").flatMap((line) => {
+    try { return line.trim() ? [JSON.parse(line)] : []; } catch { return []; }
+  });
+}
+
+/** PASS and FAIL counts in a grades file, the way C4 asks for them (one verdict per checklist line). */
+function countGrades(text) {
+  return { pass: (text.match(/\bPASS\b/g) ?? []).length, fail: (text.match(/\bFAIL\b/g) ?? []).length };
+}
+
+/** "3 of 3" as { passed: 3, tries: 3 }; anything else (a "–" before round 2) as null. */
+function triesOf(text) {
+  const m = (text ?? "").match(/(\d+)\s+of\s+(\d+)/);
+  return m ? { passed: Number(m[1]), tries: Number(m[2]) } : null;
+}
+
+/**
+ * The cases in a grades file from C4: its table rows "| Case | Kind | Passed | Before | Fails on |", like
+ * "| 3 | yours | 1 of 3 | 0 of 3 | Must 2: names the amount owed |". Other lines (the heading, the free text
+ * after the table, an older PASS/FAIL table) give no cases.
+ */
+function parseCases(text) {
+  return text.split("\n").flatMap((line) => {
+    const [n, kind, passed, before, failsOn] = line.split("|").slice(1).map((cell) => cell.trim());
+    const now = triesOf(passed);
+    if (!/^\d+$/.test(n ?? "") || !now) return [];
+    return [{ n: Number(n), kind, ...now, before: triesOf(before), reason: failsOn ?? "" }];
+  });
+}
+
+/** The round of a grades file: its heading "# Grades · round 2 · …", else its folder drafts/tests/round-2/, else 0. */
+function roundOf(path, text) {
+  const m = text.match(/^#.*\bround\s+(\d+)/im) ?? path.match(/round-(\d+)/);
+  return m ? Number(m[1]) : 0;
+}
+
+/** The job a grades file tested, from its heading "# Grades · round 2 · /fin-owed": "fin-owed", or "" when it isn't there. */
+function gradesJob(text) {
+  return text.match(/^#.*\bround\s+\d+\s*·\s*\/([\w-]+)/im)?.[1] ?? "";
+}
+
+/**
+ * The graded tries under the table: [{ n, lines: [{ label, pass }] }], one entry per try of case n.
+ * A try starts at a heading ("## Case 1 (normal) · run-1 · FAIL", or "### Run 2 · PASS" under "## Case 4")
+ * and holds its checklist lines, "- Must 1: PASS. …". A line without PASS or FAIL is skipped.
+ */
+function parseRuns(text) {
+  const runs = [];
+  let n = null;
+  let current = null;
+  for (const line of text.split("\n")) {
+    const caseHead = line.match(/^#{2,4}\s*Case\s+(\d+)/i);
+    if (caseHead) n = Number(caseHead[1]);
+    if (/^#{2,4}\s/.test(line)) current = null;
+    const verdict = n === null ? null : line.match(/^\s*[-*]\s+(.+?):[\s*]*(PASS|FAIL)\b/);
+    if (!verdict) continue;
+    if (!current) runs.push((current = { n, lines: [] }));
+    current.lines.push({ label: verdict[1].replaceAll("*", "").trim(), pass: verdict[2] === "PASS" });
+  }
+  return runs;
+}
+
+/**
+ * The lines of one checklist file, in order: "- [ ] Needs: the summary is 3 lines." as
+ * { label: "Needs", text: "the summary is 3 lines." }. A line without a label keeps all its text.
+ */
+function parseChecklist(text) {
+  return text.split("\n").flatMap((line) => {
+    const item = line.match(/^\s*[-*]\s+(?:\[[ xX]?\]\s*)?(.+)$/)?.[1].trim();
+    if (!item) return [];
+    const labelled = item.match(/^((?:Must|Never|Needs|Judgement)[^:]{0,20}):\s*(.+)$/i);
+    return [labelled ? { label: labelled[1], text: labelled[2] } : { label: "", text: item }];
+  });
+}
+
+/** Checklist files as { [case number]: lines }, from drafts/tests/checklists/case-N.md; other files are skipped. */
+function checklistsOf(files) {
+  const byCase = {};
+  for (const { path, text } of files) {
+    const n = path.match(/checklists\/case-(\d+)\.md$/)?.[1];
+    if (n) byCase[Number(n)] = parseChecklist(text);
+  }
+  return byCase;
+}
+
+/** Per case, each checklist line in order with how many tries failed it: { [n]: [{ label, failed, tries }] }. */
+function linesByCase(runs) {
+  const byCase = {};
+  for (const run of runs) {
+    const lines = (byCase[run.n] ??= []);
+    run.lines.forEach((line, i) => {
+      const entry = (lines[i] ??= { label: line.label, failed: 0, tries: 0 });
+      entry.tries += 1;
+      entry.failed += line.pass ? 0 : 1;
+    });
+  }
+  return byCase;
+}
+
+/**
+ * What changed on a case's checklist lines between two rounds: [{ i, label, word, failed, tries, was }] for every
+ * line that fails now or failed before; i is the line's place in the checklist, from 0. word: "now passes", "now fails", "still fails", or "fails" when there
+ * is no round before. Lines pair up by position (graders reword a label between rounds) when both rounds have
+ * the same number of lines, else by label.
+ */
+function lineChanges(before, now) {
+  const samePlaces = before?.length === now.length;
+  const earlier = (line, i) => (samePlaces ? before[i] : before?.find((b) => b.label === line.label)) ?? null;
+  return now.flatMap((line, i) => {
+    const was = before?.length ? earlier(line, i) : null;
+    const word = lineWord(was, line, Boolean(before?.length));
+    return word ? [{ i, label: line.label, word, failed: line.failed, tries: line.tries, was }] : [];
+  });
+}
+
+function lineWord(was, line, hasBefore) {
+  if (!line.failed) return was?.failed ? "now passes" : "";
+  if (!hasBefore) return "fails";
+  return was?.failed ? "still fails" : "now fails";
+}
+
+/**
+ * Every round with cases, oldest first: [{ round, job, cases, lines }]. When only the newest round's file is
+ * there, the round before it comes from that file's Before column.
+ */
+function roundsOf(grades) {
+  const byRound = new Map();
+  for (const g of grades) {
+    const cases = parseCases(g.text);
+    if (cases.length) byRound.set(roundOf(g.path, g.text), { cases, job: gradesJob(g.text), lines: linesByCase(parseRuns(g.text)) });
+  }
+  const rounds = [...byRound].sort((a, b) => a[0] - b[0]).map(([round, r]) => ({ round, ...r }));
+  const newest = rounds.at(-1);
+  const before = newest?.cases.filter((c) => c.before) ?? [];
+  if (newest?.round > 1 && !byRound.has(newest.round - 1) && before.length) {
+    rounds.splice(-1, 0, { round: newest.round - 1, job: newest.job, lines: {}, cases: before.map((c) => ({ n: c.n, kind: c.kind, ...c.before, before: null, reason: "" })) });
+  }
+  return rounds;
+}
+
+const passes = (t) => t.passed === t.tries;
+
+/** What changed for one case between two rounds, in plain words: fixed, broke, better, worse or "". */
+function changeOf(before, now) {
+  if (!before || !now) return "";
+  if (passes(before) !== passes(now)) return passes(now) ? "fixed" : "broke";
+  const diff = now.passed / now.tries - before.passed / before.tries;
+  if (diff === 0) return "";
+  return diff > 0 ? "better" : "worse";
+}
+
+/** One "ok" or "bad" per try of a case, passed tries first: the dots of its cell. */
+function dotsOf(c) {
+  return Array.from({ length: c.tries }, (_, i) => (i < c.passed ? "ok" : "bad"));
+}
+
+/** The same as changeOf, never empty: an unchanged case reads "still passing" or "still failing"; with no round before, "passes" or "fails". */
+function statusOf(before, now) {
+  const word = changeOf(before, now);
+  if (word) return word;
+  if (!before) return passes(now) ? "passes" : "fails";
+  return passes(now) ? "still passing" : "still failing";
+}
+
+/** Milliseconds as "42 s", "6 min 3 s" or "1 h 5 min". */
+function duration(ms) {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ${s % 60} s`;
+  return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
+}
+</script>
+
+<!-- dashboard.sh puts the run logs and grades here -->
+<script>
+const $ = (id) => document.getElementById(id);
+const money = (usd) => `$${usd.toFixed(usd < 1 ? 4 : 2)}`;
+const count = (n) => n.toLocaleString("en");
+const day = (iso) => new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const KINDS = { yours: "your own example", vague: "vague request", trap: "trap", stretch: "stretch case", normal: "normal request" };
+const kindOf = (kind) => KINDS[Object.keys(KINDS).find((key) => (kind ?? "").includes(key)) ?? ""] ?? kind;
+const jobName = (job) => (job === "chat" ? "Chat (no job)" : `Job: ${job}`);
+/** Checklist sentences per case number, when the fill script or the picker gave them. */
+const checklists = {};
+const OPEN_ROUNDS = 3;
+const LISTED_ROUNDS = 8;
+const LISTED_RUNS = 5;
+
+/** An element with a class and text, built without parsing HTML. */
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+/** An element with a class and child nodes. */
+function box(tag, className, ...children) {
+  const node = el(tag, className);
+  node.append(...children);
+  return node;
+}
+
+/** A fold: "Show 7 earlier rounds" with the rest inside. */
+function fold(label, children) {
+  return box("details", "more", el("summary", "", label), ...children);
+}
+
+function showResult() {
+  $("empty").hidden = true;
+  $("result").hidden = false;
+}
+
+// ----- Your tests: one row per round ------------------------------------------------
+
+const caseIn = (round, n) => round?.cases.find((c) => c.n === n) ?? null;
+/** The same case one round earlier: from that round's file, else from this round's Before column. */
+const beforeOf = (c, prior) => caseIn(prior, c.n) ?? c.before;
+const TAGGED = new Set(["fixed", "broke", "better", "worse"]);
+
+/** One case in one round: a dot per try, "1 of 3", and a tag when it changed. */
+function caseCell(c, prior) {
+  if (!c) return box("div", "ccell", el("span", "tries none", "not run"));
+  const dots = el("span", "dots");
+  dots.setAttribute("aria-hidden", "true");
+  dots.append(...dotsOf(c).map((kind) => el("i", `dot ${kind}`)));
+  const cell = box("div", "ccell", dots, el("span", "tries", `${c.passed} of ${c.tries}`));
+  const word = changeOf(beforeOf(c, prior), c);
+  if (word) cell.append(el("span", `change change-${word}`, word));
+  return cell;
+}
+
+/** "1 fixed, 1 worse" from the change of every case in a round; "" when nothing changed. */
+function deltaOf(round, prior) {
+  const words = round.cases.map((c) => changeOf(beforeOf(c, prior), c));
+  return [...TAGGED].map((w) => [w, words.filter((x) => x === w).length]).filter(([, n]) => n).map(([w, n]) => `${n} ${w}`).join(", ");
+}
+
+/** The left end of a round's row: its name, how many cases pass, what changed in a few words. */
+function roundLabel(round, prior) {
+  const label = box("div", "rlabel", el("span", "rname", round.round ? `Round ${round.round}` : "Newest"),
+    el("span", "rcount", `${round.cases.filter(passes).length} of ${round.cases.length} pass`));
+  if (prior) label.append(el("span", "rdelta", deltaOf(round, prior) || "no change"));
+  return label;
+}
+
+/** ", 2 of 3 tries (was 1 of 3)" after a line that fails; " (failed 2 of 3 tries before)" after one that now passes. */
+function triesNote(change) {
+  const now = change.failed && change.tries > 1 ? `, ${change.failed} of ${change.tries} tries` : "";
+  if (!change.was?.failed || change.was.tries < 2) return now;
+  const before = `${change.was.failed} of ${change.was.tries}`;
+  return change.failed ? `${now} (was ${before})` : ` (failed ${before} tries before)`;
+}
+
+/**
+ * One checklist line that changed or fails: "Still fails: the closing summary is 3 lines, 2 of 3 tries".
+ * The sentence is the checklist's own when the page has it; else "line 6 of the checklist" and the grader's
+ * short label in small type.
+ */
+function lineItem(change, sentence) {
+  const word = `${change.word[0].toUpperCase()}${change.word.slice(1)}:`;
+  const li = box("li", change.word === "now passes" ? "line-ok" : "", el("i", "", word),
+    `${sentence?.text.replace(/\.$/, "") ?? `line ${change.i + 1} of the checklist`}${triesNote(change)}`);
+  const small = sentence ? sentence.label : change.label;
+  if (small) li.append(" ", el("small", "", small));
+  return li;
+}
+
+/** The checklist sentences for a case in a round, when the round graded exactly as many lines as the checklist has; else null. */
+function sentencesFor(n, round) {
+  const sentences = checklists[n];
+  return sentences?.length && sentences.length === round.lines[n]?.length ? sentences : null;
+}
+
+/** One case in "what changed": its tag, tries now and before, then what it fails on in a sentence, line by line. */
+function changeItem(c, round, prior) {
+  const before = beforeOf(c, prior);
+  const status = statusOf(before, c);
+  const was = before && TAGGED.has(status) ? `, was ${before.passed} of ${before.tries}` : "";
+  const li = box("li", "", el("span", `change change-${status.replace("still ", "")}`, status), el("b", "", `Case ${c.n}`),
+    el("span", "kind", `${kindOf(c.kind)} · ${c.passed} of ${c.tries} tries pass${was}`));
+  const sentences = sentencesFor(c.n, round);
+  if (!passes(c) && c.reason && !sentences) li.append(el("p", "note", `Fails on: ${c.reason}`));
+  const lines = lineChanges(prior?.lines[c.n], round.lines[c.n] ?? []);
+  if (lines.length) li.append(box("ul", "lines", ...lines.map((change) => lineItem(change, sentences?.[change.i]))));
+  return li;
+}
+
+const ORDER = ["broke", "worse", "fixed", "better", "still failing", "fails", "still passing", "passes"];
+
+/** Inside a round: every case that changed or fails, worst news first, then the quiet ones in one line. */
+function roundBody(round, prior) {
+  const rank = (c) => ORDER.indexOf(statusOf(beforeOf(c, prior), c));
+  const quiet = (c) => passes(c) && !changeOf(beforeOf(c, prior), c);
+  const loud = round.cases.filter((c) => !quiet(c)).sort((a, b) => rank(a) - rank(b));
+  const body = box("div", "rbody", el("h3", "", prior ? `What changed since round ${prior.round}` : "Where it started"));
+  if (loud.length) body.append(box("ul", "chg", ...loud.map((c) => changeItem(c, round, prior))));
+  const calm = round.cases.filter(quiet).map((c) => `Case ${c.n}`);
+  if (calm.length) body.append(el("p", "why", `${prior ? "Still passing" : "Passing"}: ${calm.join(", ")}.`));
+  return body;
+}
+
+/** One round as a row that opens: label, a cell per case, and inside it what changed since the round before. */
+function roundRow(round, prior, columns, open) {
+  const summary = box("summary", "rgrid", roundLabel(round, prior), ...columns.map((n) => caseCell(caseIn(round, n), prior)));
+  const details = box("details", "round", summary, roundBody(round, prior));
+  details.open = open;
+  return details;
+}
+
+/** The column heads: "Case 1" and its kind, from the newest round that has the case. */
+function roundsHead(rounds, columns) {
+  const kind = (n) => kindOf(rounds.findLast((r) => caseIn(r, n))?.cases.find((c) => c.n === n).kind);
+  return box("div", "rgrid rhead", el("div", "rlabel"), ...columns.map((n) => box("div", "", el("b", "", `Case ${n}`), el("span", "", kind(n)))));
+}
+
+/** "Since round 1: was 1 of 5 · 1 fixed, 1 worse." under the headline. */
+function sinceLine(newest, prior) {
+  if (!prior) return "This is your first round. Change one rule and run your tests again to see what changed.";
+  return `Since round ${prior.round}: was ${prior.cases.filter(passes).length} of ${prior.cases.length} · ${deltaOf(newest, prior) || "no change"}.`;
+}
+
+/** The hero: the newest round's count, then one row per round, newest on top; older rounds closed, the oldest in a fold. */
+function showRounds(rounds) {
+  const newest = rounds.at(-1);
+  const prior = rounds.at(-2) ?? null;
+  $("headline").textContent = `${newest.cases.filter(passes).length} of ${newest.cases.length} cases pass`;
+  $("headline").append(" ", el("span", "badge", newest.round ? `round ${newest.round}` : "newest"));
+  if (newest.job) $("headline").append(" ", el("span", "badge", `Job tested: /${newest.job}`));
+  $("since").textContent = sinceLine(newest, prior);
+  $("legend").hidden = false;
+  $("tags").hidden = false;
+  const columns = [...new Set(rounds.flatMap((r) => r.cases.map((c) => c.n)))].sort((a, b) => a - b);
+  const rows = rounds.map((r, i) => roundRow(r, rounds[i - 1] ?? null, columns, i >= rounds.length - OPEN_ROUNDS)).reverse();
+  const older = rows.splice(LISTED_ROUNDS);
+  $("rounds").replaceChildren(roundsHead(rounds, columns), ...rows);
+  $("rounds").style.setProperty("--cols", String(columns.length));
+  if (older.length) $("rounds").append(fold(`Show ${older.length} earlier rounds`, older));
+  showNext(newest.job);
+}
+
+/** The one thing to type next: /run-tests with the job the newest round tested. */
+function showNext(job) {
+  if (!job) return;
+  $("nextLine").textContent = `/run-tests ${job}`;
+  $("nextHint").textContent = `It runs every test case for /${job} again and grades them as the next round.`;
+  $("jobExample").textContent = `, like /${job}`;
+}
+
+/** grades: [{ path, text }] from the picker or the script. Older files without the cases table only give a count. */
+function showGrades(grades) {
+  if (!grades.length) return;
+  showResult();
+  const rounds = roundsOf(grades);
+  if (rounds.length) return showRounds(rounds);
+  const { pass, fail } = grades.map((g) => countGrades(g.text)).reduce((a, b) => ({ pass: a.pass + b.pass, fail: a.fail + b.fail }));
+  $("headline").textContent = pass + fail ? `${pass} checks pass, ${fail} fail` : "No results found";
+  $("since").textContent = "These grades don't have the cases table, so there's no round-by-round picture.";
+}
+
+// ----- Your runs --------------------------------------------------------------------
+
+const written = (r) => r.write5m + r.write1h;
+const share = (part, r) => (promptOf(r) ? Math.round((100 * part) / promptOf(r)) : 0);
+
+function stat(kind, label, value, note) {
+  return box("div", `stat stat-${kind}`, el("span", "", label), el("strong", "", count(value)), el("small", "", note));
+}
+
+/** The big bar: what the run read, split into from the cache, saved to the cache, and new. A wide piece carries its share. */
+function cacheBar(r) {
+  const bar = el("div", "bar");
+  bar.setAttribute("role", "img");
+  bar.setAttribute("aria-label", `${share(r.read, r)}% read from the cache, ${share(written(r), r)}% written to the cache, ${share(r.fresh, r)}% new input`);
+  for (const [kind, part] of [["read", r.read], ["write", written(r)], ["fresh", r.fresh]]) {
+    const piece = el("i", `b-${kind}`, share(part, r) >= 8 ? `${share(part, r)}%` : "");
+    piece.style.width = `${(100 * part) / (promptOf(r) || 1)}%`;
+    bar.append(piece);
+  }
+  return bar;
+}
+
+function priceLine(r) {
+  if (r.unpriced.size) return el("p", "price", `Price: not measured (no list price here for ${[...r.unpriced].map(modelName).join(", ")}).`);
+  return box("p", "price", "Price: ", el("b", "", money(r.cost)), ` · without the cache it would be ${money(r.costWithout)}`);
+}
+
+/** "Fri 13 Nov, 14:02 · took 6 min 3 s · Sonnet 5.5" */
+function whatLine(r) {
+  const ms = Date.parse(r.ended) - Date.parse(r.started);
+  const took = ms > 0 ? `took ${duration(ms)}` : "length not measured";
+  return `${day(r.started)} · ${took} · ${[...r.models].map(modelName).join(", ")}`;
+}
+
+/** One run in words, then its four token counts, the cache bar and the price. */
+function runCard(r) {
+  const stats = box("div", "stats",
+    stat("fresh", "Input", r.fresh, "new, read at full price"),
+    stat("write", "Cache write", written(r), "saved for next time"),
+    stat("read", "Cache read", r.read, "re-read at a low price"),
+    stat("out", "Output", r.output, "what it wrote"));
+  const label = promptOf(r) ? `What it read: ${share(r.read, r)}% came from the cache` : "What it read: not measured";
+  return box("div", "run", el("h3", "", jobName(r.job)), el("p", "what", whatLine(r)), stats, el("p", "barlabel", label), cacheBar(r), priceLine(r));
+}
+
+function showTotals(runs) {
+  const sum = (key) => runs.reduce((total, r) => total + r[key], 0);
+  const prompt = runs.reduce((total, r) => total + promptOf(r), 0);
+  $("lastRun").textContent = day(runs[0].started);
+  $("lastJob").textContent = jobName(runs[0].job);
+  $("runsWeek").textContent = String(runs.filter((r) => Date.now() - Date.parse(r.started) < 7 * 864e5).length);
+  $("runsAll").textContent = `${runs.length} in all`;
+  $("costAll").textContent = money(sum("cost"));
+  $("costWithoutAll").textContent = `${money(sum("costWithout"))} without the cache`;
+  $("cachedAll").textContent = prompt ? `${Math.round((100 * sum("read")) / prompt)}%` : "not measured";
+}
+
+/** runs: newest first. The newest few show; the rest sit in a fold. */
+function showRuns(runs) {
+  showTotals(runs);
+  const cards = runs.map(runCard);
+  const older = cards.splice(LISTED_RUNS);
+  $("runs").replaceChildren(...cards);
+  if (older.length) $("runs").append(fold(`Show ${older.length} earlier runs`, older));
+  const job = runs.find((r) => r.job !== "chat")?.job;
+  if (job && !$("jobExample").textContent) $("jobExample").textContent = `, like ${job}`;
+}
+
+/** Logs as { path, text }: picked by hand, or filled in by .claude/dashboard.sh. */
+function showLogs(logs) {
+  const bySession = new Map();
+  for (const { path, text } of logs) {
+    const session = sessionOf(path);
+    if (session) bySession.set(session, [...(bySession.get(session) ?? []), ...parseJsonl(text)]);
+  }
+  const runs = [...bySession.values()].map(summarizeRun).filter((r) => r.started && r.models.size);
+  if (!runs.length) {
+    $("message").textContent = "No runs in that folder. Choose the folder in ~/.claude/projects whose name ends in your agent's folder name, after you ran a job there.";
+    return;
+  }
+  $("message").textContent = "";
+  showResult();
+  runs.sort((a, b) => b.started.localeCompare(a.started));
+  showRuns(runs);
+}
+
+for (const button of document.querySelectorAll("button.info")) {
+  button.addEventListener("click", () => {
+    const text = $(button.getAttribute("aria-controls"));
+    text.hidden = !text.hidden;
+    button.setAttribute("aria-expanded", String(!text.hidden));
+  });
+}
+
+$("pricesNote").textContent = `Prices read on ${PRICES_READ_ON}. To change them, edit the PRICES block in this file.`;
+const filesOf = (input) => Promise.all([...input.files].map(async (f) => ({ path: f.webkitRelativePath || f.name, text: await f.text() })));
+$("logs").addEventListener("change", async (e) => showLogs(await filesOf(e.target)));
+$("grades").addEventListener("change", async (e) => {
+  const files = await filesOf(e.target);
+  Object.assign(checklists, checklistsOf(files));
+  showGrades(files.filter((f) => f.path.endsWith("grades.md")));
+});
+
+// Filled in by .claude/dashboard.sh: each file sits in a text/plain script block (never run), every "<" written as \u003c.
+const filledLogs = [...document.querySelectorAll("script[data-log]")].map((s) => ({ path: s.dataset.log, text: s.textContent }));
+const unescaped = (s) => s.textContent.replaceAll("\\u003c", "<");
+const filledGrades = [...document.querySelectorAll("script[data-grades]")].map((s) => ({ path: s.dataset.grades, text: unescaped(s) }));
+Object.assign(checklists, checklistsOf([...document.querySelectorAll("script[data-checklist]")].map((s) => ({ path: s.dataset.checklist, text: unescaped(s) }))));
+if (filledLogs.length) showLogs(filledLogs);
+showGrades(filledGrades);
+</script>
+</body>
+</html>

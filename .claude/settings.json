@@ -1,0 +1,43 @@
+{
+  "model": "sonnet",
+  "disableAutoMode": "disable",
+  "respondToBashCommands": false,
+  "permissions": {
+    "allow": [
+      "Edit(/memory.md)",
+      "Edit(/drafts/**)"
+    ],
+    "deny": [
+      "Bash(rm *)",
+      "Bash(sudo *)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(security *)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(Invoke-WebRequest *)",
+      "PowerShell(Invoke-RestMethod *)",
+      "PowerShell(Invoke-Expression *)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)",
+      "Read(//**/.env)",
+      "Read(//**/.env.*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false,
+    "allowUnsandboxedCommands": false,
+    "filesystem": {
+      "denyRead": [
+        "~/.ssh",
+        "~/.aws",
+        "~/.gnupg"
+      ]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+date,direction,email,subject,summary
+2026-11-10,sent,mira.kovac@example.com,A course idea for you,First recommendation sent; no reply yet
+2026-11-12,sent,jonas.weber@example.com,Nice work at the hack,Congratulated; no course mentioned yet
+2026-10-20,sent,paul.richter@example.com,A course idea for you,First recommendation sent; no reply
+2026-10-25,sent,sara.lindqvist@example.com,A course idea for you,First recommendation sent
+2026-10-27,received,sara.lindqvist@example.com,Re: A course idea for you,Interested; asked for the price
+2026-10-15,sent,eva.novak@example.com,A course idea for you,First recommendation sent; no reply
+2026-09-30,sent,ben.okafor@example.com,A course idea for you,First recommendation sent
+2026-10-01,received,ben.okafor@example.com,Re: A course idea for you,Please do not contact me again

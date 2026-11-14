@@ -1,0 +1,18 @@
+# What never goes to GitHub, even in a private repository.
+
+# Keys and passwords
+.env
+.env.*
+*.pem
+*.key
+
+# Your own permission choices on this laptop ("Yes, and don't ask again")
+.claude/settings.local.json
+
+# Mac and Windows clutter
+.DS_Store
+Thumbs.db
+
+# Files you wouldn't hand to a stranger: remove the # in front of a line to keep that folder off GitHub too.
+# data/
+# drafts/

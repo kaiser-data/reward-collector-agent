@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lead Rewards Agent</title>
+<style>
+:root{--bg:#0f1720;--fg:#f2efe8;--mut:#9aa7b4;--acc:#f2b84b;--ok:#6fcf97;--todo:#e07a5f;--card:#18232f}
+@media (prefers-color-scheme:light){:root{--bg:#faf7f0;--fg:#16212b;--mut:#5d6b78;--acc:#b8780a;--ok:#1f8a55;--todo:#c2452d;--card:#fff}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:20px/1.5 Georgia,serif}
+.slide{display:none;min-height:100vh;padding:7vh 8vw;flex-direction:column;justify-content:center}
+.slide.on{display:flex}
+h1{font-size:clamp(2.4rem,6vw,4.5rem);line-height:1.1;margin:0 0 .4em}
+h2{font-size:clamp(1.8rem,4vw,2.8rem);margin:0 0 .6em;color:var(--acc)}
+p,li{max-width:46em}.mut{color:var(--mut)}
+ul{padding-left:1.1em}li{margin:.4em 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:1em}
+.card{background:var(--card);border-radius:12px;padding:18px 20px;border-left:5px solid var(--acc)}
+.card.ok{border-color:var(--ok)}.card.todo{border-color:var(--todo)}
+.card b{display:block;font-size:1.05em;margin-bottom:.2em}.card span{color:var(--mut);font-size:.85em}
+.flow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:1em}
+.flow div{background:var(--card);padding:12px 16px;border-radius:10px}.flow i{color:var(--acc);font-style:normal}
+nav{position:fixed;bottom:14px;right:20px;color:var(--mut);font:14px sans-serif}
+</style></head><body>
+
+<section class="slide on">
+<h1>An agent that finds leads and drafts the outreach</h1>
+<p class="mut">Every 2 weeks or month: read my contacts, recommend the right course, earn referral rewards. I approve every message.</p>
+<p class="mut">Status as of 14 Nov 2026</p>
+</section>
+
+<section class="slide">
+<h2>The problem</h2>
+<ul>
+<li>Finding the right contacts and writing to each one by hand takes hours.</li>
+<li>Follow-ups get forgotten, so rewards are lost.</li>
+<li>Goal: as automatic as possible, and as many rewards as possible.</li>
+</ul>
+</section>
+
+<section class="slide">
+<h2>What we built</h2>
+<div class="grid">
+<div class="card ok"><b>My own agent</b><span>Copied the starter into my-agent. Rules stay in place: nothing sent, posted or paid without my yes.</span></div>
+<div class="card ok"><b>Data map</b><span>drafts/data-access.md lists every input, where it lives, and what the agent must not touch.</span></div>
+<div class="card"><b>One command: /get-rewards</b><span>Designed and shown for approval. Not saved yet.</span></div>
+</div>
+</section>
+
+<section class="slide">
+<h2>How it works</h2>
+<div class="flow">
+<div>Apify export CSV</div><i>+</i><div>Email history CSV</div><i>+</i><div>Courses CSV</div><i>→</i>
+<div>/get-rewards</div><i>→</i><div>One draft in drafts/</div><i>→</i><div>Messages in outbox</div><i>→</i><div><b>My yes</b></div>
+</div>
+<ul>
+<li>Skips anyone contacted in the last 14 days or marked do-not-contact.</li>
+<li>Matches each lead to a course by their classification.</li>
+<li>Drafts first messages and follow-ups in one run.</li>
+</ul>
+</section>
+
+<section class="slide">
+<h2>Safety by design</h2>
+<ul>
+<li><b>Nothing goes out without my yes</b> to the exact text.</li>
+<li>Reads only local CSVs. No inbox access, no logins.</li>
+<li>Contact data is private: stays in data/, never in memory or shared files.</li>
+<li>Never contacts the same person twice in 14 days.</li>
+</ul>
+</section>
+
+<section class="slide">
+<h2>Where we are</h2>
+<div class="grid">
+<div class="card ok"><b>Done</b><span>Agent copy · data map · job design</span></div>
+<div class="card todo"><b>Open</b><span>CLAUDE.md still describes the sample marketing agent</span></div>
+<div class="card todo"><b>Open</b><span>SKILL.md for /get-rewards waiting for my yes</span></div>
+<div class="card todo"><b>Open</b><span>data/ needs apify-export.csv, email-history.csv, courses.csv</span></div>
+</div>
+</section>
+
+<section class="slide">
+<h2>Next</h2>
+<ul>
+<li>Say yes to save /get-rewards and the CLAUDE.md update.</li>
+<li>Put the three CSVs in data/.</li>
+<li>Run /get-rewards once on real contacts and review the first draft.</li>
+<li>Later: a database if the data outgrows CSVs.</li>
+</ul>
+</section>
+
+<nav id="n"></nav>
+<script>
+const s=[...document.querySelectorAll('.slide')];let i=0;
+function go(k){i=Math.max(0,Math.min(s.length-1,k));s.forEach((e,j)=>e.classList.toggle('on',j==i));document.getElementById('n').textContent=(i+1)+' / '+s.length+'  ← →'}
+addEventListener('keydown',e=>{if(['ArrowRight',' ','PageDown'].includes(e.key))go(i+1);if(['ArrowLeft','PageUp'].includes(e.key))go(i-1)});
+addEventListener('click',e=>go(e.clientX>innerWidth/2?i+1:i-1));go(0);
+</script></body></html>
